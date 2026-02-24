@@ -37,3 +37,35 @@ def create_item(request):
         }, status=201)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
+
+@csrf_exempt
+@require_http_methods(["PUT"])
+def update_item(request, item_id):
+    try:
+        data = json.loads(request.body)
+        item = Item.objects.get(pk=item_id)
+        item.name = data.get('name', item.name)
+        item.description = data.get('description', item.description)
+        item.save()
+        return JsonResponse({
+            'id': item.id,
+            'name': item.name,
+            'description': item.description,
+            'created_at': item.created_at.isoformat()
+        })
+    except Item.DoesNotExist:
+        return JsonResponse({'error': 'Not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+@csrf_exempt
+@require_http_methods(["DELETE"])
+def delete_item(request, item_id):
+    try:
+        item = Item.objects.get(pk=item_id)
+        item.delete()
+        return JsonResponse({'ok': True})
+    except Item.DoesNotExist:
+        return JsonResponse({'error': 'Not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)

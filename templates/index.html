@@ -27,9 +27,23 @@
         <div class="items-list">
             <h3>Items List</h3>
             <div class="item" ng-repeat="item in items">
-                <h3>{{ item.name }}</h3>
-                <p>{{ item.description }}</p>
-                <small>Created: {{ item.created_at | date:'medium' }}</small>
+                <div ng-if="!item.editing">
+                    <h3>{{ item.name }}</h3>
+                    <p>{{ item.description }}</p>
+                    <small>Created: {{ item.created_at | date:'medium' }}</small>
+                    <div style="margin-top:10px">
+                        <button ng-click="startEdit(item)">Edit</button>
+                        <button style="margin-left:8px;background:#c62828" ng-click="deleteItem(item)">Delete</button>
+                    </div>
+                </div>
+                <div ng-if="item.editing">
+                    <input type="text" ng-model="item.editName" placeholder="Name" />
+                    <textarea ng-model="item.editDescription" placeholder="Description" rows="3"></textarea>
+                    <div style="margin-top:10px">
+                        <button ng-click="saveEdit(item)">Save</button>
+                        <button style="margin-left:8px;background:#757575" ng-click="cancelEdit(item)">Cancel</button>
+                    </div>
+                </div>
             </div>
             <div ng-if="items.length === 0">
                 <p>No items found. Add some items to get started!</p>
