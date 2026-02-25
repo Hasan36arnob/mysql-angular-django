@@ -8,6 +8,7 @@
     <script src="/static/js/app.js"></script>
 </head>
 <body ng-controller="MainController">
+{% verbatim %}
     <div class="nav">Django × AngularJS</div>
     <div class="wrap">
         <div class="panel" ng-if="!me">
@@ -36,10 +37,10 @@
                 <button class="btn btn-primary" ng-click="createProject()">Create</button>
             </div>
             <div class="grid">
-                <div class="card" ng-repeat="p in projects" ng-click="selectProject(p)" style="cursor:pointer;border-color: {{currentProject && currentProject.id===p.id ? '#3b82f6' : 'var(--border)'}}">
+                <div class="card" ng-repeat="p in projects" ng-click="selectProject(p)" style="cursor:pointer" ng-style="{'border-color': (currentProject && currentProject.id===p.id) ? '#3b82f6' : 'var(--border)'}">
                     <h3>{{p.name}}</h3>
                     <p>{{p.description}}</p>
-                    <div class="meta">Updated {{ p.updated_at | date:'medium' }}</div>
+                    <div class="meta">Updated <span ng-bind="p.updated_at | date:'medium'"></span></div>
                 </div>
             </div>
             <div class="status" ng-if="loading">Loading…</div>
@@ -88,7 +89,7 @@
                 <div class="card" ng-repeat="t in tasks">
                     <h3>{{t.title}}</h3>
                     <p>{{t.description}}</p>
-                    <div class="meta">Status: {{t.status}} • Priority: {{t.priority}} • Tags: {{t.tags.join(', ')}}</div>
+                    <div class="meta">Status: {{t.status}} • Priority: {{t.priority}} • Tags: <span ng-bind="t.tags.join(', ')"></span></div>
                     <div class="actions">
                         <select ng-model="t.status" ng-change="updateTask(t, {status: t.status})">
                             <option value="todo">To Do</option>
@@ -101,7 +102,7 @@
                     </div>
                     <div ng-if="t._comments">
                         <div class="meta" style="margin-top:8px">Comments</div>
-                        <div class="meta" ng-repeat="c in t._comments">• {{c.body}} <span style="opacity:.7">({{c.created_at | date:'short'}})</span></div>
+                        <div class="meta" ng-repeat="c in t._comments">• {{c.body}} <span style="opacity:.7">(<span ng-bind="c.created_at | date:'short'"></span>)</span></div>
                         <div class="row" style="margin-top:6px">
                             <div class="field" style="flex:2 1 420px"><input type="text" ng-model="t._newBody" placeholder="Write a comment"></div>
                             <button class="btn btn-primary" ng-click="addComment(t)">Add</button>
@@ -118,5 +119,6 @@
     </div>
 
     <script></script>
+{% endverbatim %}
 </body>
 </html>
