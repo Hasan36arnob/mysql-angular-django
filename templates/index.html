@@ -8,46 +8,52 @@
     <script src="/static/js/app.js"></script>
 </head>
 <body ng-controller="MainController">
-    <div class="container">
-        <h1>Django + AngularJS CRUD App</h1>
-        
-        <div class="form-group">
-            <h3>Add New Item</h3>
-            <input type="text" ng-model="newItem.name" placeholder="Item name" />
-        </div>
-        
-        <div class="form-group">
-            <textarea ng-model="newItem.description" placeholder="Item description" rows="3"></textarea>
-        </div>
-        
-        <button ng-click="addItem()">Add Item</button>
-        
-        <div class="error" ng-if="error">{{ error }}</div>
-        
-        <div class="items-list">
-            <h3>Items List</h3>
-            <div class="item" ng-repeat="item in items">
-                <div ng-if="!item.editing">
-                    <h3>{{ item.name }}</h3>
-                    <p>{{ item.description }}</p>
-                    <small>Created: {{ item.created_at | date:'medium' }}</small>
-                    <div style="margin-top:10px">
-                        <button ng-click="startEdit(item)">Edit</button>
-                        <button style="margin-left:8px;background:#c62828" ng-click="deleteItem(item)">Delete</button>
-                    </div>
+    <div class="nav">Django × AngularJS</div>
+    <div class="wrap">
+        <div class="panel">
+            <div class="title">Add Item</div>
+            <div class="subtitle">Create an entry with a name and description.</div>
+            <div class="row">
+                <div class="field">
+                    <input type="text" ng-model="newItem.name" placeholder="Name">
                 </div>
-                <div ng-if="item.editing">
-                    <input type="text" ng-model="item.editName" placeholder="Name" />
-                    <textarea ng-model="item.editDescription" placeholder="Description" rows="3"></textarea>
-                    <div style="margin-top:10px">
-                        <button ng-click="saveEdit(item)">Save</button>
-                        <button style="margin-left:8px;background:#757575" ng-click="cancelEdit(item)">Cancel</button>
+                <div class="field" style="flex:2 1 420px">
+                    <textarea ng-model="newItem.description" placeholder="Description"></textarea>
+                </div>
+            </div>
+            <div style="margin-top:12px">
+                <button class="btn btn-primary" ng-disabled="saving" ng-click="addItem()">Add Item</button>
+                <span class="loading" ng-if="saving">Saving…</span>
+            </div>
+            <div class="status" ng-if="message">{{ message }}</div>
+            <div class="status" style="color:#f87171" ng-if="error">{{ error }}</div>
+        </div>
+
+        <div class="panel" style="margin-top:16px">
+            <div class="title">Items</div>
+            <div class="grid">
+                <div class="card" ng-repeat="item in items">
+                    <div ng-if="!item.editing">
+                        <h3>{{ item.name }}</h3>
+                        <p>{{ item.description }}</p>
+                        <div class="meta">Created {{ item.created_at | date:'medium' }}</div>
+                        <div class="actions">
+                            <button class="btn btn-secondary" ng-click="startEdit(item)">Edit</button>
+                            <button class="btn btn-danger" ng-click="deleteItem(item)">Delete</button>
+                        </div>
+                    </div>
+                    <div ng-if="item.editing">
+                        <input type="text" ng-model="item.editName" placeholder="Name">
+                        <textarea ng-model="item.editDescription" placeholder="Description" style="margin-top:8px"></textarea>
+                        <div class="actions">
+                            <button class="btn btn-primary" ng-click="saveEdit(item)">Save</button>
+                            <button class="btn btn-secondary" ng-click="cancelEdit(item)">Cancel</button>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div ng-if="items.length === 0">
-                <p>No items found. Add some items to get started!</p>
-            </div>
+            <div class="status" ng-if="loading">Loading…</div>
+            <div class="status" ng-if="!loading && items.length === 0">No items yet.</div>
         </div>
     </div>
 

@@ -4,12 +4,18 @@ app.controller('MainController', ['$scope', '$http', function($scope, $http) {
   $scope.items = [];
   $scope.newItem = { name: '', description: '' };
   $scope.error = '';
+  $scope.message = '';
+  $scope.loading = true;
+  $scope.saving = false;
   function loadItems() {
+    $scope.loading = true;
     $http.get(API_BASE + '/items/').then(function(response) {
       $scope.items = response.data;
       $scope.error = '';
+      $scope.loading = false;
     }).catch(function() {
       $scope.error = 'Error loading items';
+      $scope.loading = false;
     });
   }
   $scope.addItem = function() {
@@ -17,12 +23,16 @@ app.controller('MainController', ['$scope', '$http', function($scope, $http) {
       $scope.error = 'Please fill in both name and description';
       return;
     }
+    $scope.saving = true;
     $http.post(API_BASE + '/items/create/', $scope.newItem).then(function(response) {
       $scope.items.push(response.data);
       $scope.newItem = { name: '', description: '' };
       $scope.error = '';
+      $scope.message = 'Item added';
+      $scope.saving = false;
     }).catch(function() {
       $scope.error = 'Error adding item';
+      $scope.saving = false;
     });
   };
   $scope.startEdit = function(item) {
@@ -46,6 +56,7 @@ app.controller('MainController', ['$scope', '$http', function($scope, $http) {
       item.description = response.data.description;
       item.editing = false;
       $scope.error = '';
+      $scope.message = 'Item updated';
     }).catch(function() {
       $scope.error = 'Error saving item';
     });
@@ -54,6 +65,7 @@ app.controller('MainController', ['$scope', '$http', function($scope, $http) {
     $http.delete(API_BASE + '/items/' + item.id + '/delete/').then(function() {
       $scope.items = $scope.items.filter(function(i) { return i.id !== item.id; });
       $scope.error = '';
+      $scope.message = 'Item deleted';
     }).catch(function() {
       $scope.error = 'Error deleting item';
     });
