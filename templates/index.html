@@ -10,51 +10,111 @@
 <body ng-controller="MainController">
     <div class="nav">Django × AngularJS</div>
     <div class="wrap">
-        <div class="panel">
-            <div class="title">Add Item</div>
-            <div class="subtitle">Create an entry with a name and description.</div>
+        <div class="panel" ng-if="!me">
+            <div class="title">Sign In</div>
+            <div class="subtitle">Use Django's built-in users (create via createsuperuser if needed).</div>
             <div class="row">
-                <div class="field">
-                    <input type="text" ng-model="newItem.name" placeholder="Name">
-                </div>
-                <div class="field" style="flex:2 1 420px">
-                    <textarea ng-model="newItem.description" placeholder="Description"></textarea>
-                </div>
+                <div class="field"><input type="text" ng-model="auth.username" placeholder="Username"></div>
+                <div class="field"><input type="password" ng-model="auth.password" placeholder="Password"></div>
             </div>
             <div style="margin-top:12px">
-                <button class="btn btn-primary" ng-disabled="saving" ng-click="addItem()">Add Item</button>
-                <span class="loading" ng-if="saving">Saving…</span>
+                <button class="btn btn-primary" ng-click="login()">Login</button>
+                <span class="status" style="color:#f87171" ng-if="auth.error">{{auth.error}}</span>
             </div>
-            <div class="status" ng-if="message">{{ message }}</div>
-            <div class="status" style="color:#f87171" ng-if="error">{{ error }}</div>
+        </div>
+        <div class="panel" ng-if="me">
+            <div class="title">Welcome, {{me.username}}</div>
+            <div><button class="btn btn-secondary" ng-click="logout()">Logout</button></div>
         </div>
 
         <div class="panel" style="margin-top:16px">
-            <div class="title">Items</div>
+            <div class="title">Projects</div>
+            <div class="row">
+                <div class="field"><input type="text" ng-model="projectQuery.q" placeholder="Search projects" ng-change="loadProjects && loadProjects()"></div>
+                <div class="field"><input type="text" ng-model="newProject.name" placeholder="New project name"></div>
+                <div class="field"><input type="text" ng-model="newProject.description" placeholder="Description"></div>
+                <button class="btn btn-primary" ng-click="createProject()">Create</button>
+            </div>
             <div class="grid">
-                <div class="card" ng-repeat="item in items">
-                    <div ng-if="!item.editing">
-                        <h3>{{ item.name }}</h3>
-                        <p>{{ item.description }}</p>
-                        <div class="meta">Created {{ item.created_at | date:'medium' }}</div>
-                        <div class="actions">
-                            <button class="btn btn-secondary" ng-click="startEdit(item)">Edit</button>
-                            <button class="btn btn-danger" ng-click="deleteItem(item)">Delete</button>
-                        </div>
+                <div class="card" ng-repeat="p in projects" ng-click="selectProject(p)" style="cursor:pointer;border-color: {{currentProject && currentProject.id===p.id ? '#3b82f6' : 'var(--border)'}}">
+                    <h3>{{p.name}}</h3>
+                    <p>{{p.description}}</p>
+                    <div class="meta">Updated {{ p.updated_at | date:'medium' }}</div>
+                </div>
+            </div>
+            <div class="status" ng-if="loading">Loading…</div>
+            <div class="status" ng-if="!loading && projects.length===0">No projects yet.</div>
+        </div>
+
+        <div class="panel" style="margin-top:16px" ng-if="currentProject">
+            <div class="title">Tasks — {{currentProject.name}}</div>
+            <div class="row">
+                <div class="field"><input type="text" ng-model="taskQuery.q" placeholder="Search tasks"></div>
+                <div class="field">
+                    <select ng-model="taskQuery.status" ng-change="filterTasks()">
+                        <option value="">Any status</option>
+                        <option value="todo">To Do</option>
+                        <option value="in_progress">In Progress</option>
+                        <option value="done">Done</option>
+                        <option value="blocked">Blocked</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <select ng-model="taskQuery.priority" ng-change="filterTasks()">
+                        <option value="">Any priority</option>
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                        <option value="urgent">Urgent</option>
+                    </select>
+                </div>
+                <button class="btn btn-secondary" ng-click="filterTasks()">Filter</button>
+            </div>
+            <div class="row" style="margin-top:8px">
+                <div class="field"><input type="text" ng-model="newTask.title" placeholder="Task title"></div>
+                <div class="field" style="flex:2 1 420px"><input type="text" ng-model="newTask.description" placeholder="Task description"></div>
+                <div class="field">
+                    <select ng-model="newTask.priority">
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                        <option value="urgent">Urgent</option>
+                    </select>
+                </div>
+                <div class="field"><input type="text" ng-model="newTask.tagsText" placeholder="tags comma separated"></div>
+                <button class="btn btn-primary" ng-click="createTask()">Add Task</button>
+            </div>
+            <div class="grid">
+                <div class="card" ng-repeat="t in tasks">
+                    <h3>{{t.title}}</h3>
+                    <p>{{t.description}}</p>
+                    <div class="meta">Status: {{t.status}} • Priority: {{t.priority}} • Tags: {{t.tags.join(', ')}}</div>
+                    <div class="actions">
+                        <select ng-model="t.status" ng-change="updateTask(t, {status: t.status})">
+                            <option value="todo">To Do</option>
+                            <option value="in_progress">In Progress</option>
+                            <option value="done">Done</option>
+                            <option value="blocked">Blocked</option>
+                        </select>
+                        <button class="btn btn-secondary" ng-click="loadComments(t)">Comments</button>
+                        <button class="btn btn-danger" ng-click="deleteTask(t)">Delete</button>
                     </div>
-                    <div ng-if="item.editing">
-                        <input type="text" ng-model="item.editName" placeholder="Name">
-                        <textarea ng-model="item.editDescription" placeholder="Description" style="margin-top:8px"></textarea>
-                        <div class="actions">
-                            <button class="btn btn-primary" ng-click="saveEdit(item)">Save</button>
-                            <button class="btn btn-secondary" ng-click="cancelEdit(item)">Cancel</button>
+                    <div ng-if="t._comments">
+                        <div class="meta" style="margin-top:8px">Comments</div>
+                        <div class="meta" ng-repeat="c in t._comments">• {{c.body}} <span style="opacity:.7">({{c.created_at | date:'short'}})</span></div>
+                        <div class="row" style="margin-top:6px">
+                            <div class="field" style="flex:2 1 420px"><input type="text" ng-model="t._newBody" placeholder="Write a comment"></div>
+                            <button class="btn btn-primary" ng-click="addComment(t)">Add</button>
                         </div>
                     </div>
                 </div>
             </div>
             <div class="status" ng-if="loading">Loading…</div>
-            <div class="status" ng-if="!loading && items.length === 0">No items yet.</div>
+            <div class="status" ng-if="!loading && tasks.length===0">No tasks yet.</div>
         </div>
+
+        <div class="status" ng-if="message">{{ message }}</div>
+        <div class="status" style="color:#f87171" ng-if="error">{{ error }}</div>
     </div>
 
     <script></script>
