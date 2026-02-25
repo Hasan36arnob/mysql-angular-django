@@ -1,74 +1,117 @@
 var app = angular.module('myApp', []);
 var API_BASE = window.API_BASE || '/api';
 app.controller('MainController', ['$scope', '$http', function($scope, $http) {
-  $scope.items = [];
-  $scope.newItem = { name: '', description: '' };
+  // session
+  $scope.me = null;
+  $scope.auth = { username: '', password: '', error: '' };
+  // projects
+  $scope.projects = [];
+  $scope.projectQuery = { q: '', limit: 20, offset: 0 };
+  $scope.newProject = { name: '', description: '' };
+  $scope.currentProject = null;
+  // tasks
+  $scope.tasks = [];
+  $scope.taskQuery = { q: '', status: '', priority: '', limit: 20, offset: 0 };
+  $scope.newTask = { title: '', description: '', priority: 'medium', status: 'todo', tagsText: '' };
+  // comments
+  $scope.comments = [];
+  $scope.newComment = { body: '' };
+  // ui state
   $scope.error = '';
   $scope.message = '';
-  $scope.loading = true;
+  $scope.loading = false;
   $scope.saving = false;
-  function loadItems() {
-    $scope.loading = true;
-    $http.get(API_BASE + '/items/').then(function(response) {
-      $scope.items = response.data;
-      $scope.error = '';
-      $scope.loading = false;
-    }).catch(function() {
-      $scope.error = 'Error loading items';
-      $scope.loading = false;
-    });
+
+  function get(url, params) { return $http.get(API_BASE + url, { params: params || {} }); }
+  function post(url, body) { return $http.post(API_BASE + url, body || {}); }
+  function put(url, body) { return $http.put(API_BASE + url, body || {}); }
+  function del(url) { return $http.delete(API_BASE + url); }
+
+  // session
+  function loadMe() {
+    return get('/auth/me/').then(function(res) { $scope.me = res.data.user; });
   }
-  $scope.addItem = function() {
-    if (!$scope.newItem.name || !$scope.newItem.description) {
-      $scope.error = 'Please fill in both name and description';
-      return;
-    }
+  $scope.login = function() {
+    $scope.auth.error = '';
+    post('/auth/login/', { username: $scope.auth.username, password: $scope.auth.password })
+      .then(function(res) { $scope.me = res.data.user; $scope.message = 'Logged in'; })
+      .catch(function(err) { $scope.auth.error = (err.data && err.data.error) || 'Login failed'; });
+  };
+  $scope.logout = function() {
+    post('/auth/logout/').finally(function() { $scope.me = null; });
+  };
+
+  // projects
+  function loadProjects() {
+    $scope.loading = true;
+    return get('/projects/', $scope.projectQuery).then(function(res) {
+      $scope.projects = res.data.results;
+      $scope.loading = false;
+    }).catch(function() { $scope.loading = false; $scope.error = 'Failed to load projects'; });
+  }
+  $scope.createProject = function() {
+    if (!$scope.newProject.name) { $scope.error = 'Project name required'; return; }
     $scope.saving = true;
-    $http.post(API_BASE + '/items/create/', $scope.newItem).then(function(response) {
-      $scope.items.push(response.data);
-      $scope.newItem = { name: '', description: '' };
-      $scope.error = '';
-      $scope.message = 'Item added';
+    post('/projects/create/', $scope.newProject).then(function(res) {
+      $scope.projects.unshift(res.data);
+      $scope.newProject = { name: '', description: '' };
+      $scope.message = 'Project created';
       $scope.saving = false;
-    }).catch(function() {
-      $scope.error = 'Error adding item';
+    }).catch(function() { $scope.error = 'Failed to create project'; $scope.saving = false; });
+  };
+  $scope.selectProject = function(p) {
+    $scope.currentProject = p;
+    $scope.taskQuery.offset = 0;
+    loadTasks();
+  };
+
+  // tasks
+  function loadTasks() {
+    if (!$scope.currentProject) { $scope.tasks = []; return; }
+    $scope.loading = true;
+    return get('/projects/' + $scope.currentProject.id + '/tasks/', $scope.taskQuery).then(function(res) {
+      $scope.tasks = res.data.results;
+      $scope.loading = false;
+    }).catch(function() { $scope.loading = false; $scope.error = 'Failed to load tasks'; });
+  }
+  $scope.createTask = function() {
+    if (!$scope.currentProject) return;
+    if (!$scope.newTask.title) { $scope.error = 'Task title required'; return; }
+    var payload = angular.copy($scope.newTask);
+    payload.tags = (payload.tagsText || '').split(',').map(function(s){return s.trim();}).filter(Boolean);
+    $scope.saving = true;
+    post('/projects/' + $scope.currentProject.id + '/tasks/create/', payload).then(function() {
+      $scope.newTask = { title: '', description: '', priority: 'medium', status: 'todo', tagsText: '' };
+      $scope.message = 'Task created';
       $scope.saving = false;
-    });
+      loadTasks();
+    }).catch(function() { $scope.error = 'Failed to create task'; $scope.saving = false; });
   };
-  $scope.startEdit = function(item) {
-    item.editing = true;
-    item.editName = item.name;
-    item.editDescription = item.description;
+  $scope.updateTask = function(t, fields) {
+    put('/tasks/' + t.id + '/', fields).then(function() {
+      Object.assign(t, fields);
+      $scope.message = 'Task updated';
+    }).catch(function() { $scope.error = 'Failed to update task'; });
   };
-  $scope.cancelEdit = function(item) {
-    item.editing = false;
+  $scope.deleteTask = function(t) {
+    del('/tasks/' + t.id + '/delete/').then(function() {
+      $scope.tasks = $scope.tasks.filter(function(x){ return x.id !== t.id; });
+      $scope.message = 'Task deleted';
+    }).catch(function() { $scope.error = 'Failed to delete task'; });
   };
-  $scope.saveEdit = function(item) {
-    if (!item.editName || !item.editDescription) {
-      $scope.error = 'Please fill in both name and description';
-      return;
-    }
-    $http.put(API_BASE + '/items/' + item.id + '/', {
-      name: item.editName,
-      description: item.editDescription
-    }).then(function(response) {
-      item.name = response.data.name;
-      item.description = response.data.description;
-      item.editing = false;
-      $scope.error = '';
-      $scope.message = 'Item updated';
-    }).catch(function() {
-      $scope.error = 'Error saving item';
-    });
+  $scope.filterTasks = function() { loadTasks(); };
+
+  // comments
+  $scope.loadComments = function(t) {
+    get('/tasks/' + t.id + '/comments/').then(function(res){ t._comments = res.data; });
   };
-  $scope.deleteItem = function(item) {
-    $http.delete(API_BASE + '/items/' + item.id + '/delete/').then(function() {
-      $scope.items = $scope.items.filter(function(i) { return i.id !== item.id; });
-      $scope.error = '';
-      $scope.message = 'Item deleted';
-    }).catch(function() {
-      $scope.error = 'Error deleting item';
-    });
+  $scope.addComment = function(t) {
+    if (!t._newBody) return;
+    post('/tasks/' + t.id + '/comments/create/', { body: t._newBody, author_id: $scope.me ? $scope.me.id : null })
+      .then(function() { t._newBody=''; $scope.loadComments(t); $scope.message = 'Comment added'; })
+      .catch(function(){ $scope.error='Failed to add comment'; });
   };
-  loadItems();
+
+  // initialize
+  loadMe().finally(function() { loadProjects(); });
 }]);
