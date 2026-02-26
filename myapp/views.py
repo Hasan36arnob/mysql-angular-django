@@ -15,12 +15,36 @@ def index(request):
 @csrf_exempt
 @require_http_methods(["POST"])
 def login_view(request):
-    data = json.loads(request.body)
-    user = authenticate(username=data.get('username'), password=data.get('password'))
-    if user:
+    try:
+        data = json.loads(request.body)
+        user = authenticate(username=data.get('username'), password=data.get('password'))
+        if user:
+            login(request, user)
+            return JsonResponse({'id': user.id, 'username': user.username})
+        return JsonResponse({'error': 'Invalid username or password. Please try again.'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': 'An error occurred during login.'}, status=400)
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def register_view(request):
+    try:
+        data = json.loads(request.body)
+        username = data.get('username')
+        email = data.get('email')
+        password = data.get('password')
+        
+        if not username or not password:
+            return JsonResponse({'error': 'Username and password are required.'}, status=400)
+            
+        if User.objects.filter(username=username).exists():
+            return JsonResponse({'error': 'Username already exists.'}, status=400)
+            
+        user = User.objects.create_user(username=username, email=email, password=password)
         login(request, user)
         return JsonResponse({'id': user.id, 'username': user.username})
-    return JsonResponse({'error': 'Invalid credentials'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': 'An error occurred during registration.'}, status=400)
 
 @csrf_exempt
 @require_http_methods(["POST"])

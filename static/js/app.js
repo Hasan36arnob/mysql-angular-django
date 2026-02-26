@@ -2,7 +2,7 @@ var app = angular.module('myApp', []);
 
 app.controller('MainController', ['$scope', '$http', function($scope, $http) {
     // --- State ---
-    $scope.view = 'store'; // store, product, cart, orders, login
+    $scope.view = 'store'; // store, product, cart, orders, login, register
     $scope.me = null;
     $scope.products = [];
     $scope.categories = [];
@@ -10,7 +10,7 @@ app.controller('MainController', ['$scope', '$http', function($scope, $http) {
     $scope.orders = [];
     $scope.selectedProduct = null;
     $scope.filters = { q: '', category: '' };
-    $scope.auth = { username: '', password: '' };
+    $scope.auth = { username: '', password: '', email: '' };
     $scope.message = '';
     $scope.error = '';
 
@@ -21,13 +21,14 @@ app.controller('MainController', ['$scope', '$http', function($scope, $http) {
         return $http({ method: method, url: '/api' + url, data: data })
             .then(function(res) { return res.data; })
             .catch(function(err) {
-                $scope.error = err.data.error || 'Something went wrong';
+                $scope.error = (err.data && err.data.error) ? err.data.error : 'Something went wrong';
                 throw err;
             });
     }
 
     $scope.setView = function(v) {
         $scope.view = v;
+        window.scrollTo(0, 0);
         if (v === 'store') $scope.loadProducts();
         if (v === 'cart') $scope.loadCart();
         if (v === 'orders') $scope.loadOrders();
@@ -37,6 +38,15 @@ app.controller('MainController', ['$scope', '$http', function($scope, $http) {
     $scope.login = function() {
         api('POST', '/auth/login/', $scope.auth).then(function(user) {
             $scope.me = user;
+            $scope.auth = { username: '', password: '', email: '' };
+            $scope.setView('store');
+        });
+    };
+
+    $scope.register = function() {
+        api('POST', '/auth/register/', $scope.auth).then(function(user) {
+            $scope.me = user;
+            $scope.auth = { username: '', password: '', email: '' };
             $scope.setView('store');
         });
     };
