@@ -69,7 +69,9 @@ app.controller('MainController', ['$scope', '$http', function($scope, $http) {
     };
 
     $scope.loadCategories = function() {
-        api('GET', '/categories/').then(function(data) { $scope.categories = data; });
+        api('GET', '/categories/').then(function(data) { 
+            $scope.categories = data; 
+        });
     };
 
     $scope.viewProduct = function(slug) {
