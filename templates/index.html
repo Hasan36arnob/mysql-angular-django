@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html ng-app="myApp">
 <head>
-    <title>Modern E-Commerce Store</title>
+    <title>BD-Amazon | Premium Bangladeshi Marketplace</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/styles.css">
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
     <script src="/static/js/app.js"></script>
@@ -11,19 +12,39 @@
     {% verbatim %}
     <!-- Navigation -->
     <nav class="nav">
-        <div class="nav-brand" ng-click="setView('store')">E-Store</div>
+        <div class="nav-brand" ng-click="setView('store')">BD-<span>AMAZON</span></div>
+        
+        <div class="nav-search">
+            <input type="text" ng-model="filters.q" ng-change="loadProducts()" placeholder="Search Bangladeshi products, websites, and more...">
+            <button ng-click="loadProducts()">🔍</button>
+        </div>
+
         <div class="nav-links">
-            <div class="nav-link" ng-click="setView('store')">Shop</div>
-            <div class="nav-link" ng-click="setView('cart')">Cart ({{cart.length}})</div>
-            <div class="nav-link" ng-if="me" ng-click="setView('orders')">My Orders</div>
-            <div class="nav-link" ng-if="!me" ng-click="setView('login')">Login</div>
-            <div class="nav-link" ng-if="me" ng-click="logout()">Logout ({{me.username}})</div>
+            <div class="nav-link" ng-if="!me" ng-click="setView('login')">
+                <small>Hello, sign in</small>
+                Account & Lists
+            </div>
+            <div class="nav-link" ng-if="me" ng-click="logout()">
+                <small>Hello, {{me.username}}</small>
+                Logout
+            </div>
+            <div class="nav-link" ng-if="me" ng-click="setView('orders')">
+                <small>Returns</small>
+                & Orders
+            </div>
+            <div class="nav-link" ng-click="setView('cart')" style="display:flex; align-items:center; gap:5px;">
+                <span style="font-size:1.5rem">🛒</span>
+                <div>
+                    <b style="color:var(--primary)">{{cart.length}}</b>
+                    <span>Cart</span>
+                </div>
+            </div>
         </div>
     </nav>
 
     <div class="container">
         <!-- Status Messages -->
-        <div ng-if="message" class="badge badge-delivered" style="margin-bottom:1rem; width:100%; text-align:center; padding:1rem;">{{message}}</div>
+        <div ng-if="message" class="badge badge-delivered" style="margin-bottom:1rem; width:100%; text-align:center; padding:1rem; background:#dcfce7; color:#166534;">{{message}}</div>
         <div ng-if="error" class="badge badge-pending" style="margin-bottom:1rem; width:100%; text-align:center; padding:1rem; background:#fee2e2; color:#b91c1c;">{{error}}</div>
 
         <!-- Storefront View -->
@@ -31,23 +52,29 @@
             <aside class="sidebar">
                 <div class="sidebar-title">Categories</div>
                 <ul class="cat-list">
-                    <li class="cat-item" ng-class="{active: filters.category === ''}" ng-click="filters.category = ''; loadProducts()">All Products</li>
+                    <li class="cat-item" ng-class="{active: filters.category === ''}" ng-click="filters.category = ''; loadProducts()">All Categories</li>
                     <li class="cat-item" ng-repeat="cat in categories" ng-class="{active: filters.category === cat.slug}" ng-click="filters.category = cat.slug; loadProducts()">
                         {{cat.name}}
                     </li>
                 </ul>
             </aside>
             <main>
-                <input type="text" class="search-bar" ng-model="filters.q" ng-change="loadProducts()" placeholder="Search products...">
                 <div class="product-grid">
                     <div class="card" ng-repeat="p in products">
-                        <img ng-src="{{p.image_url || 'https://via.placeholder.com/300x200'}}" class="card-img" ng-click="viewProduct(p.slug)">
+                        <div class="card-img-wrap" ng-click="viewProduct(p.slug)" style="cursor:pointer">
+                            <img ng-src="{{p.image_url || 'https://via.placeholder.com/300x200'}}" class="card-img">
+                        </div>
                         <div class="card-body">
-                            <span class="card-cat">{{p.category}}</span>
                             <h3 class="card-title" ng-click="viewProduct(p.slug)" style="cursor:pointer">{{p.name}}</h3>
-                            <div class="card-rating" ng-if="p.avg_rating">★ {{p.avg_rating | number:1}}</div>
-                            <div class="card-price">${{p.price}}</div>
-                            <button class="btn btn-primary btn-block" style="margin-top:1rem" ng-click="addToCart(p.id)">Add to Cart</button>
+                            <div class="card-rating" ng-if="p.avg_rating">
+                                <span ng-repeat="i in [1,2,3,4,5]">
+                                    <span ng-if="p.avg_rating >= i">★</span>
+                                    <span ng-if="p.avg_rating < i">☆</span>
+                                </span>
+                                <small style="color:var(--muted)">({{p.avg_rating | number:1}})</small>
+                            </div>
+                            <div class="card-price"><span>৳</span>{{p.price}}</div>
+                            <button class="btn btn-amazon btn-block" style="margin-top:1rem" ng-click="addToCart(p.id)">Add to Cart</button>
                         </div>
                     </div>
                 </div>
@@ -55,26 +82,41 @@
         </div>
 
         <!-- Product Detail View -->
-        <div ng-if="view === 'product'" class="panel" style="display:grid; grid-template-columns:1fr 1fr; gap:2rem;">
-            <div><img ng-src="{{selectedProduct.image_url || 'https://via.placeholder.com/600x400'}}" style="width:100%; border-radius:12px;"></div>
+        <div ng-if="view === 'product'" class="product-detail">
+            <div style="text-align:center">
+                <img ng-src="{{selectedProduct.image_url || 'https://via.placeholder.com/600x400'}}" style="max-width:100%; border-radius:8px; box-shadow:var(--shadow);">
+            </div>
             <div>
-                <span class="card-cat">{{selectedProduct.category}}</span>
-                <h1>{{selectedProduct.name}}</h1>
-                <p style="font-size:1.1rem; color:var(--muted); margin:1.5rem 0;">{{selectedProduct.description}}</p>
-                <div style="font-size:2rem; font-weight:700; color:var(--brand); margin-bottom:1.5rem;">${{selectedProduct.price}}</div>
-                <div style="margin-bottom:1.5rem;">Stock: <span class="badge" ng-class="selectedProduct.stock > 0 ? 'badge-delivered' : 'badge-pending'">{{selectedProduct.stock > 0 ? selectedProduct.stock + ' in stock' : 'Out of stock'}}</span></div>
-                <button class="btn btn-primary" ng-click="addToCart(selectedProduct.id)" ng-disabled="selectedProduct.stock <= 0">Add to Cart</button>
-                <button class="btn btn-outline" ng-click="setView('store')">Back to Shop</button>
+                <nav style="margin-bottom:1rem; font-size:0.85rem; color:var(--muted)">
+                    Home > {{selectedProduct.category}} > {{selectedProduct.name}}
+                </nav>
+                <h1 style="font-size:2rem; margin-bottom:0.5rem;">{{selectedProduct.name}}</h1>
+                <div class="card-rating" style="font-size:1.2rem; margin-bottom:1rem;">
+                    <span ng-repeat="i in [1,2,3,4,5]">★</span>
+                    <a href="#" style="font-size:0.9rem; color:var(--primary); margin-left:10px;">{{selectedProduct.reviews.length}} ratings</a>
+                </div>
+                <hr style="border:0; border-top:1px solid var(--border); margin:1.5rem 0;">
+                <div class="price-tag"><small style="font-size:1.5rem; vertical-align:top; margin-right:4px;">৳</small>{{selectedProduct.price}}</div>
+                <p style="margin:1.5rem 0; color:#333; font-size:1.1rem;">{{selectedProduct.description}}</p>
+                
+                <div class="panel" style="border:1px solid var(--border); padding:1.5rem; border-radius:8px; width:100%; max-width:300px;">
+                    <div class="price-tag" style="font-size:1.5rem; color:var(--text)">৳{{selectedProduct.price}}</div>
+                    <div style="margin:1rem 0; color:var(--secondary); font-weight:700;">In Stock.</div>
+                    <button class="btn btn-amazon btn-block" ng-click="addToCart(selectedProduct.id)">Add to Cart</button>
+                    <button class="btn btn-primary btn-block" style="margin-top:0.5rem; background:#ffa41c; border-color:#ff8f00;" ng-click="addToCart(selectedProduct.id); setView('cart')">Buy Now</button>
+                </div>
 
                 <div style="margin-top:3rem;">
-                    <h3>Reviews</h3>
-                    <div ng-repeat="r in selectedProduct.reviews" style="border-bottom:1px solid var(--border); padding:1rem 0;">
-                        <div style="color:var(--accent)">★ {{r.rating}}</div>
-                        <div style="font-weight:500">{{r.user}}</div>
-                        <p style="margin:0.5rem 0">{{r.comment}}</p>
-                        <small class="meta">{{r.created_at | date:'medium'}}</small>
+                    <h3>Customer reviews</h3>
+                    <div ng-repeat="r in selectedProduct.reviews" style="margin:1.5rem 0;">
+                        <div style="font-weight:700; display:flex; align-items:center; gap:10px;">
+                            <div style="width:34px; height:34px; background:#ddd; border-radius:50%; display:flex; align-items:center; justify-content:center;">👤</div>
+                            {{r.user}}
+                        </div>
+                        <div style="color:var(--accent); margin:5px 0;">★ ★ ★ ★ ★</div>
+                        <p style="font-weight:500;">{{r.comment}}</p>
+                        <small class="meta">Reviewed in Bangladesh on {{r.created_at | date:'longDate'}}</small>
                     </div>
-                    <div ng-if="selectedProduct.reviews.length === 0">No reviews yet.</div>
                 </div>
             </div>
         </div>
@@ -82,68 +124,91 @@
         <!-- Cart View -->
         <div ng-if="view === 'cart'">
             <h1>Shopping Cart</h1>
-            <div ng-repeat="item in cart" class="cart-item">
-                <img ng-src="{{item.image_url || 'https://via.placeholder.com/80x80'}}">
-                <div class="cart-info">
-                    <h3 style="margin:0">{{item.product_name}}</h3>
-                    <div style="color:var(--muted)">Price: ${{item.price}}</div>
+            <div style="display:grid; grid-template-columns: 1fr 300px; gap:2rem;">
+                <div class="panel" style="padding:0;">
+                    <div ng-repeat="item in cart" class="cart-item">
+                        <img ng-src="{{item.image_url || 'https://via.placeholder.com/80x80'}}">
+                        <div class="cart-info">
+                            <h3 style="margin:0">{{item.product_name}}</h3>
+                            <div style="color:var(--secondary); font-size:0.85rem; font-weight:600;">In Stock</div>
+                            <div style="margin-top:10px;">
+                                <button class="btn btn-outline" style="padding:2px 10px; font-size:0.8rem;" ng-click="removeFromCart(item.id)">Delete</button>
+                            </div>
+                        </div>
+                        <div style="text-align:right">
+                            <div style="font-weight:700; font-size:1.2rem;">৳{{item.price}}</div>
+                            <div style="font-size:0.9rem">Qty: {{item.quantity}}</div>
+                        </div>
+                    </div>
+                    <div ng-if="cart.length === 0" style="text-align:center; padding:3rem;">
+                        <p>Your cart is empty.</p>
+                        <button class="btn btn-amazon" style="margin-top:1rem" ng-click="setView('store')">Start Shopping</button>
+                    </div>
                 </div>
-                <div style="display:flex; align-items:center; gap:1rem;">
-                    <span>Qty: {{item.quantity}}</span>
-                    <button class="btn btn-danger" ng-click="removeFromCart(item.id)">Remove</button>
+                <div class="panel" ng-if="cart.length > 0">
+                    <div style="font-size:1.2rem; margin-bottom:1.5rem;">
+                        Subtotal ({{cart.length}} items): <br>
+                        <b style="font-size:1.5rem;">৳{{cartTotal() | number:2}}</b>
+                    </div>
+                    <button class="btn btn-amazon btn-block" ng-click="checkout()">Proceed to Checkout</button>
                 </div>
-            </div>
-            <div ng-if="cart.length === 0" style="text-align:center; padding:3rem;">
-                <p>Your cart is empty.</p>
-                <button class="btn btn-primary" ng-click="setView('store')">Start Shopping</button>
-            </div>
-            <div ng-if="cart.length > 0" class="summary">
-                <div style="display:flex; justify-content:space-between; font-size:1.5rem; font-weight:700; margin-bottom:1.5rem;">
-                    <span>Total</span>
-                    <span>${{cartTotal() | number:2}}</span>
-                </div>
-                <button class="btn btn-primary btn-block" ng-click="checkout()">Proceed to Checkout</button>
             </div>
         </div>
 
         <!-- Orders View -->
         <div ng-if="view === 'orders'">
-            <h1>My Orders</h1>
-            <div ng-repeat="o in orders" class="panel" style="margin-bottom:1.5rem;">
-                <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border); padding-bottom:1rem; margin-bottom:1rem;">
+            <h1>Your Orders</h1>
+            <div ng-repeat="o in orders" class="panel" style="margin-bottom:1.5rem; padding:0; overflow:hidden;">
+                <div style="background:#f0f2f2; padding:1rem; display:flex; gap:3rem; font-size:0.85rem; border-bottom:1px solid var(--border);">
                     <div>
-                        <div style="font-weight:700">Order #{{o.id}}</div>
-                        <div class="meta">{{o.created_at | date:'medium'}}</div>
+                        <div style="color:var(--muted); text-transform:uppercase;">Order Placed</div>
+                        <div>{{o.created_at | date:'mediumDate'}}</div>
                     </div>
                     <div>
-                        <span class="badge" ng-class="'badge-' + o.status">{{o.status}}</span>
+                        <div style="color:var(--muted); text-transform:uppercase;">Total</div>
+                        <div>৳{{o.total_price}}</div>
+                    </div>
+                    <div>
+                        <div style="color:var(--muted); text-transform:uppercase;">Ship To</div>
+                        <div style="color:var(--primary); cursor:pointer;">{{me.username}} ▾</div>
+                    </div>
+                    <div style="margin-left:auto; text-align:right;">
+                        <div style="color:var(--muted); text-transform:uppercase;">Order # {{o.id}}</div>
+                        <div style="color:var(--primary); cursor:pointer;">View order details</div>
                     </div>
                 </div>
-                <div ng-repeat="item in o.items" style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
-                    <span>{{item.name}} x {{item.quantity}}</span>
-                    <span>${{item.price}}</span>
-                </div>
-                <div style="text-align:right; font-weight:700; font-size:1.2rem; margin-top:1rem; border-top:1px solid var(--border); padding-top:0.5rem;">
-                    Total: ${{o.total_price}}
+                <div style="padding:1.5rem;">
+                    <div style="font-weight:700; font-size:1.1rem; margin-bottom:1rem; color:var(--secondary);">{{o.status | uppercase}}</div>
+                    <div ng-repeat="item in o.items" style="display:flex; gap:1.5rem; margin-bottom:1rem;">
+                        <div style="width:60px; height:60px; background:#eee; border-radius:4px;"></div>
+                        <div>
+                            <div style="color:var(--primary); font-weight:500; cursor:pointer;">{{item.name}}</div>
+                            <div style="font-size:0.85rem;">Quantity: {{item.quantity}}</div>
+                            <button class="btn btn-amazon" style="padding:4px 12px; font-size:0.8rem; margin-top:8px;">Buy it again</button>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div ng-if="orders.length === 0" style="text-align:center; padding:3rem;">No orders yet.</div>
         </div>
 
         <!-- Login View -->
-        <div ng-if="view === 'login'" class="auth-panel">
-            <h1 style="margin-top:0">Login</h1>
+        <div ng-if="view === 'login'" class="auth-panel" style="border:1px solid var(--border);">
+            <h1 style="margin-top:0; font-weight:500; font-size:1.75rem;">Sign-In</h1>
             <form ng-submit="login()">
                 <div class="form-group">
-                    <label>Username</label>
+                    <label style="font-size:0.85rem; font-weight:700;">Username</label>
                     <input type="text" class="form-control" ng-model="auth.username" required>
                 </div>
                 <div class="form-group">
-                    <label>Password</label>
+                    <label style="font-size:0.85rem; font-weight:700;">Password</label>
                     <input type="password" class="form-control" ng-model="auth.password" required>
                 </div>
-                <button type="submit" class="btn btn-primary btn-block">Sign In</button>
+                <button type="submit" class="btn btn-amazon btn-block" style="padding:0.75rem;">Continue</button>
             </form>
+            <p style="font-size:0.75rem; margin-top:1.5rem; color:var(--muted);">
+                By continuing, you agree to BD-Amazon's Conditions of Use and Privacy Notice.
+            </p>
         </div>
     </div>
     {% endverbatim %}
