@@ -1,124 +1,151 @@
 <!DOCTYPE html>
 <html ng-app="myApp">
 <head>
-    <title>Django + AngularJS App</title>
-    <script>window.API_BASE='/api'</script>
+    <title>Modern E-Commerce Store</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="/static/css/styles.css">
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
     <script src="/static/js/app.js"></script>
 </head>
 <body ng-controller="MainController">
-{% verbatim %}
-    <div class="nav">Django × AngularJS</div>
-    <div class="wrap">
-        <div class="panel" ng-if="!me">
-            <div class="title">Sign In</div>
-            <div class="subtitle">Use Django's built-in users (create via createsuperuser if needed).</div>
-            <div class="row">
-                <div class="field"><input type="text" ng-model="auth.username" placeholder="Username"></div>
-                <div class="field"><input type="password" ng-model="auth.password" placeholder="Password"></div>
-            </div>
-            <div style="margin-top:12px">
-                <button class="btn btn-primary" ng-click="login()">Login</button>
-                <span class="status" style="color:#f87171" ng-if="auth.error">{{auth.error}}</span>
-            </div>
+    {% verbatim %}
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="nav-brand" ng-click="setView('store')">E-Store</div>
+        <div class="nav-links">
+            <div class="nav-link" ng-click="setView('store')">Shop</div>
+            <div class="nav-link" ng-click="setView('cart')">Cart ({{cart.length}})</div>
+            <div class="nav-link" ng-if="me" ng-click="setView('orders')">My Orders</div>
+            <div class="nav-link" ng-if="!me" ng-click="setView('login')">Login</div>
+            <div class="nav-link" ng-if="me" ng-click="logout()">Logout ({{me.username}})</div>
         </div>
-        <div class="panel" ng-if="me">
-            <div class="title">Welcome, {{me.username}}</div>
-            <div><button class="btn btn-secondary" ng-click="logout()">Logout</button></div>
-        </div>
+    </nav>
 
-        <div class="panel" style="margin-top:16px">
-            <div class="title">Projects</div>
-            <div class="row">
-                <div class="field"><input type="text" ng-model="projectQuery.q" placeholder="Search projects" ng-change="loadProjects && loadProjects()"></div>
-                <div class="field"><input type="text" ng-model="newProject.name" placeholder="New project name"></div>
-                <div class="field"><input type="text" ng-model="newProject.description" placeholder="Description"></div>
-                <button class="btn btn-primary" ng-click="createProject()">Create</button>
-            </div>
-            <div class="grid">
-                <div class="card" ng-repeat="p in projects" ng-click="selectProject(p)" style="cursor:pointer" ng-style="{'border-color': (currentProject && currentProject.id===p.id) ? '#3b82f6' : 'var(--border)'}">
-                    <h3>{{p.name}}</h3>
-                    <p>{{p.description}}</p>
-                    <div class="meta">Updated <span ng-bind="p.updated_at | date:'medium'"></span></div>
-                </div>
-            </div>
-            <div class="status" ng-if="loading">Loading…</div>
-            <div class="status" ng-if="!loading && projects.length===0">No projects yet.</div>
-        </div>
+    <div class="container">
+        <!-- Status Messages -->
+        <div ng-if="message" class="badge badge-delivered" style="margin-bottom:1rem; width:100%; text-align:center; padding:1rem;">{{message}}</div>
+        <div ng-if="error" class="badge badge-pending" style="margin-bottom:1rem; width:100%; text-align:center; padding:1rem; background:#fee2e2; color:#b91c1c;">{{error}}</div>
 
-        <div class="panel" style="margin-top:16px" ng-if="currentProject">
-            <div class="title">Tasks — {{currentProject.name}}</div>
-            <div class="row">
-                <div class="field"><input type="text" ng-model="taskQuery.q" placeholder="Search tasks"></div>
-                <div class="field">
-                    <select ng-model="taskQuery.status" ng-change="filterTasks()">
-                        <option value="">Any status</option>
-                        <option value="todo">To Do</option>
-                        <option value="in_progress">In Progress</option>
-                        <option value="done">Done</option>
-                        <option value="blocked">Blocked</option>
-                    </select>
-                </div>
-                <div class="field">
-                    <select ng-model="taskQuery.priority" ng-change="filterTasks()">
-                        <option value="">Any priority</option>
-                        <option value="low">Low</option>
-                        <option value="medium">Medium</option>
-                        <option value="high">High</option>
-                        <option value="urgent">Urgent</option>
-                    </select>
-                </div>
-                <button class="btn btn-secondary" ng-click="filterTasks()">Filter</button>
-            </div>
-            <div class="row" style="margin-top:8px">
-                <div class="field"><input type="text" ng-model="newTask.title" placeholder="Task title"></div>
-                <div class="field" style="flex:2 1 420px"><input type="text" ng-model="newTask.description" placeholder="Task description"></div>
-                <div class="field">
-                    <select ng-model="newTask.priority">
-                        <option value="low">Low</option>
-                        <option value="medium">Medium</option>
-                        <option value="high">High</option>
-                        <option value="urgent">Urgent</option>
-                    </select>
-                </div>
-                <div class="field"><input type="text" ng-model="newTask.tagsText" placeholder="tags comma separated"></div>
-                <button class="btn btn-primary" ng-click="createTask()">Add Task</button>
-            </div>
-            <div class="grid">
-                <div class="card" ng-repeat="t in tasks">
-                    <h3>{{t.title}}</h3>
-                    <p>{{t.description}}</p>
-                    <div class="meta">Status: {{t.status}} • Priority: {{t.priority}} • Tags: <span ng-bind="t.tags.join(', ')"></span></div>
-                    <div class="actions">
-                        <select ng-model="t.status" ng-change="updateTask(t, {status: t.status})">
-                            <option value="todo">To Do</option>
-                            <option value="in_progress">In Progress</option>
-                            <option value="done">Done</option>
-                            <option value="blocked">Blocked</option>
-                        </select>
-                        <button class="btn btn-secondary" ng-click="loadComments(t)">Comments</button>
-                        <button class="btn btn-danger" ng-click="deleteTask(t)">Delete</button>
-                    </div>
-                    <div ng-if="t._comments">
-                        <div class="meta" style="margin-top:8px">Comments</div>
-                        <div class="meta" ng-repeat="c in t._comments">• {{c.body}} <span style="opacity:.7">(<span ng-bind="c.created_at | date:'short'"></span>)</span></div>
-                        <div class="row" style="margin-top:6px">
-                            <div class="field" style="flex:2 1 420px"><input type="text" ng-model="t._newBody" placeholder="Write a comment"></div>
-                            <button class="btn btn-primary" ng-click="addComment(t)">Add</button>
+        <!-- Storefront View -->
+        <div ng-if="view === 'store'" class="store-layout">
+            <aside class="sidebar">
+                <div class="sidebar-title">Categories</div>
+                <ul class="cat-list">
+                    <li class="cat-item" ng-class="{active: filters.category === ''}" ng-click="filters.category = ''; loadProducts()">All Products</li>
+                    <li class="cat-item" ng-repeat="cat in categories" ng-class="{active: filters.category === cat.slug}" ng-click="filters.category = cat.slug; loadProducts()">
+                        {{cat.name}}
+                    </li>
+                </ul>
+            </aside>
+            <main>
+                <input type="text" class="search-bar" ng-model="filters.q" ng-change="loadProducts()" placeholder="Search products...">
+                <div class="product-grid">
+                    <div class="card" ng-repeat="p in products">
+                        <img ng-src="{{p.image_url || 'https://via.placeholder.com/300x200'}}" class="card-img" ng-click="viewProduct(p.slug)">
+                        <div class="card-body">
+                            <span class="card-cat">{{p.category}}</span>
+                            <h3 class="card-title" ng-click="viewProduct(p.slug)" style="cursor:pointer">{{p.name}}</h3>
+                            <div class="card-rating" ng-if="p.avg_rating">★ {{p.avg_rating | number:1}}</div>
+                            <div class="card-price">${{p.price}}</div>
+                            <button class="btn btn-primary btn-block" style="margin-top:1rem" ng-click="addToCart(p.id)">Add to Cart</button>
                         </div>
                     </div>
                 </div>
-            </div>
-            <div class="status" ng-if="loading">Loading…</div>
-            <div class="status" ng-if="!loading && tasks.length===0">No tasks yet.</div>
+            </main>
         </div>
 
-        <div class="status" ng-if="message">{{ message }}</div>
-        <div class="status" style="color:#f87171" ng-if="error">{{ error }}</div>
-    </div>
+        <!-- Product Detail View -->
+        <div ng-if="view === 'product'" class="panel" style="display:grid; grid-template-columns:1fr 1fr; gap:2rem;">
+            <div><img ng-src="{{selectedProduct.image_url || 'https://via.placeholder.com/600x400'}}" style="width:100%; border-radius:12px;"></div>
+            <div>
+                <span class="card-cat">{{selectedProduct.category}}</span>
+                <h1>{{selectedProduct.name}}</h1>
+                <p style="font-size:1.1rem; color:var(--muted); margin:1.5rem 0;">{{selectedProduct.description}}</p>
+                <div style="font-size:2rem; font-weight:700; color:var(--brand); margin-bottom:1.5rem;">${{selectedProduct.price}}</div>
+                <div style="margin-bottom:1.5rem;">Stock: <span class="badge" ng-class="selectedProduct.stock > 0 ? 'badge-delivered' : 'badge-pending'">{{selectedProduct.stock > 0 ? selectedProduct.stock + ' in stock' : 'Out of stock'}}</span></div>
+                <button class="btn btn-primary" ng-click="addToCart(selectedProduct.id)" ng-disabled="selectedProduct.stock <= 0">Add to Cart</button>
+                <button class="btn btn-outline" ng-click="setView('store')">Back to Shop</button>
 
-    <script></script>
-{% endverbatim %}
+                <div style="margin-top:3rem;">
+                    <h3>Reviews</h3>
+                    <div ng-repeat="r in selectedProduct.reviews" style="border-bottom:1px solid var(--border); padding:1rem 0;">
+                        <div style="color:var(--accent)">★ {{r.rating}}</div>
+                        <div style="font-weight:500">{{r.user}}</div>
+                        <p style="margin:0.5rem 0">{{r.comment}}</p>
+                        <small class="meta">{{r.created_at | date:'medium'}}</small>
+                    </div>
+                    <div ng-if="selectedProduct.reviews.length === 0">No reviews yet.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cart View -->
+        <div ng-if="view === 'cart'">
+            <h1>Shopping Cart</h1>
+            <div ng-repeat="item in cart" class="cart-item">
+                <img ng-src="{{item.image_url || 'https://via.placeholder.com/80x80'}}">
+                <div class="cart-info">
+                    <h3 style="margin:0">{{item.product_name}}</h3>
+                    <div style="color:var(--muted)">Price: ${{item.price}}</div>
+                </div>
+                <div style="display:flex; align-items:center; gap:1rem;">
+                    <span>Qty: {{item.quantity}}</span>
+                    <button class="btn btn-danger" ng-click="removeFromCart(item.id)">Remove</button>
+                </div>
+            </div>
+            <div ng-if="cart.length === 0" style="text-align:center; padding:3rem;">
+                <p>Your cart is empty.</p>
+                <button class="btn btn-primary" ng-click="setView('store')">Start Shopping</button>
+            </div>
+            <div ng-if="cart.length > 0" class="summary">
+                <div style="display:flex; justify-content:space-between; font-size:1.5rem; font-weight:700; margin-bottom:1.5rem;">
+                    <span>Total</span>
+                    <span>${{cartTotal() | number:2}}</span>
+                </div>
+                <button class="btn btn-primary btn-block" ng-click="checkout()">Proceed to Checkout</button>
+            </div>
+        </div>
+
+        <!-- Orders View -->
+        <div ng-if="view === 'orders'">
+            <h1>My Orders</h1>
+            <div ng-repeat="o in orders" class="panel" style="margin-bottom:1.5rem;">
+                <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border); padding-bottom:1rem; margin-bottom:1rem;">
+                    <div>
+                        <div style="font-weight:700">Order #{{o.id}}</div>
+                        <div class="meta">{{o.created_at | date:'medium'}}</div>
+                    </div>
+                    <div>
+                        <span class="badge" ng-class="'badge-' + o.status">{{o.status}}</span>
+                    </div>
+                </div>
+                <div ng-repeat="item in o.items" style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
+                    <span>{{item.name}} x {{item.quantity}}</span>
+                    <span>${{item.price}}</span>
+                </div>
+                <div style="text-align:right; font-weight:700; font-size:1.2rem; margin-top:1rem; border-top:1px solid var(--border); padding-top:0.5rem;">
+                    Total: ${{o.total_price}}
+                </div>
+            </div>
+            <div ng-if="orders.length === 0" style="text-align:center; padding:3rem;">No orders yet.</div>
+        </div>
+
+        <!-- Login View -->
+        <div ng-if="view === 'login'" class="auth-panel">
+            <h1 style="margin-top:0">Login</h1>
+            <form ng-submit="login()">
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" class="form-control" ng-model="auth.username" required>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" class="form-control" ng-model="auth.password" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">Sign In</button>
+            </form>
+        </div>
+    </div>
+    {% endverbatim %}
 </body>
 </html>

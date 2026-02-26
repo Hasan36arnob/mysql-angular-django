@@ -1,32 +1,26 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
-from django.db.models import Q
+from django.db.models import Q, Avg
 import json
-from .models import Item, Project, Task, Comment, Membership, Tag
+from .models import Category, Product, CartItem, Order, OrderItem, Review
 
 def index(request):
     return render(request, 'index.html')
 
-def _user_json(u: User):
-    return {'id': u.id, 'username': u.username, 'first_name': u.first_name, 'last_name': u.last_name, 'email': u.email}
-
-# ---------- Auth ----------
+# --- AUTH ---
 @csrf_exempt
 @require_http_methods(["POST"])
 def login_view(request):
-    try:
-        data = json.loads(request.body or "{}")
-        user = authenticate(request, username=data.get('username'), password=data.get('password'))
-        if user is None:
-            return JsonResponse({'error': 'Invalid credentials'}, status=400)
+    data = json.loads(request.body)
+    user = authenticate(username=data.get('username'), password=data.get('password'))
+    if user:
         login(request, user)
-        return JsonResponse({'ok': True, 'user': _user_json(user)})
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=400)
+        return JsonResponse({'id': user.id, 'username': user.username})
+    return JsonResponse({'error': 'Invalid credentials'}, status=400)
 
 @csrf_exempt
 @require_http_methods(["POST"])
@@ -34,206 +28,139 @@ def logout_view(request):
     logout(request)
     return JsonResponse({'ok': True})
 
-@csrf_exempt
-@require_http_methods(["GET"])
-def me(request):
-    user = request.user if request.user.is_authenticated else None
-    if not user:
-        return JsonResponse({'user': None})
-    return JsonResponse({'user': _user_json(user)})
+def me_view(request):
+    if request.user.is_authenticated:
+        return JsonResponse({'id': request.user.id, 'username': request.user.username})
+    return JsonResponse({'error': 'Not logged in'}, status=401)
 
-@csrf_exempt
-@require_http_methods(["GET"])
-def item_list(request):
-    items = Item.objects.all()
+# --- STOREFRONT ---
+def product_list(request):
+    query = request.GET.get('q', '')
+    cat_slug = request.GET.get('category', '')
+    products = Product.objects.all()
+    
+    if query:
+        products = products.filter(Q(name__icontains=query) | Q(description__icontains=query))
+    if cat_slug:
+        products = products.filter(category__slug=cat_slug)
+        
     data = [{
-        'id': item.id,
-        'name': item.name,
-        'description': item.description,
-        'created_at': item.created_at.isoformat()
-    } for item in items]
+        'id': p.id,
+        'name': p.name,
+        'slug': p.slug,
+        'price': str(p.price),
+        'image_url': p.image_url,
+        'category': p.category.name,
+        'avg_rating': p.reviews.aggregate(Avg('rating'))['rating__avg'] or 0
+    } for p in products]
+    return JsonResponse(data, safe=False)
+
+def product_detail(request, slug):
+    p = get_object_or_404(Product, slug=slug)
+    reviews = [{
+        'user': r.user.username,
+        'rating': r.rating,
+        'comment': r.comment,
+        'created_at': r.created_at.isoformat()
+    } for r in p.reviews.all()]
+    
+    return JsonResponse({
+        'id': p.id,
+        'name': p.name,
+        'description': p.description,
+        'price': str(p.price),
+        'stock': p.stock,
+        'image_url': p.image_url,
+        'category': p.category.name,
+        'reviews': reviews
+    })
+
+def category_list(request):
+    categories = Category.objects.all()
+    data = [{'name': c.name, 'slug': c.slug} for c in categories]
+    return JsonResponse(data, safe=False)
+
+# --- CART ---
+@csrf_exempt
+@require_http_methods(["GET", "POST"])
+def cart_view(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Auth required'}, status=401)
+        
+    if request.method == "POST":
+        data = json.loads(request.body)
+        product = get_object_or_404(Product, id=data.get('product_id'))
+        qty = int(data.get('quantity', 1))
+        
+        item, created = CartItem.objects.get_or_create(user=request.user, product=product)
+        if created:
+            item.quantity = qty
+        else:
+            item.quantity += qty
+        item.save()
+        return JsonResponse({'ok': True})
+        
+    items = CartItem.objects.filter(user=request.user)
+    data = [{
+        'id': i.id,
+        'product_id': i.product.id,
+        'product_name': i.product.name,
+        'price': str(i.product.price),
+        'quantity': i.quantity,
+        'image_url': i.product.image_url
+    } for i in items]
     return JsonResponse(data, safe=False)
 
 @csrf_exempt
-@require_http_methods(["POST"])
-def create_item(request):
-    try:
-        data = json.loads(request.body)
-        item = Item.objects.create(
-            name=data['name'],
-            description=data['description']
-        )
-        return JsonResponse({
-            'id': item.id,
-            'name': item.name,
-            'description': item.description,
-            'created_at': item.created_at.isoformat()
-        }, status=201)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=400)
+@require_http_methods(["DELETE"])
+def cart_remove(request, item_id):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Auth required'}, status=401)
+    item = get_object_or_404(CartItem, id=item_id, user=request.user)
+    item.delete()
+    return JsonResponse({'ok': True})
 
+# --- ORDERS ---
 @csrf_exempt
-@require_http_methods(["GET"])
-def projects(request):
-    q = request.GET.get('q') or ''
-    limit = int(request.GET.get('limit') or 20)
-    offset = int(request.GET.get('offset') or 0)
-    qs = Project.objects.all()
-    if q:
-        qs = qs.filter(Q(name__icontains=q) | Q(description__icontains=q))
-    total = qs.count()
+@require_http_methods(["POST"])
+def checkout(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Auth required'}, status=401)
+        
+    cart_items = CartItem.objects.filter(user=request.user)
+    if not cart_items.exists():
+        return JsonResponse({'error': 'Cart is empty'}, status=400)
+        
+    total = sum(i.product.price * i.quantity for i in cart_items)
+    order = Order.objects.create(user=request.user, total_price=total)
+    
+    for i in cart_items:
+        OrderItem.objects.create(
+            order=order,
+            product=i.product,
+            price=i.product.price,
+            quantity=i.quantity
+        )
+        # Reduce stock
+        i.product.stock -= i.quantity
+        i.product.save()
+        
+    cart_items.delete()
+    return JsonResponse({'order_id': order.id, 'total': str(total)})
+
+def my_orders(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Auth required'}, status=401)
+    orders = Order.objects.filter(user=request.user)
     data = [{
-        'id': p.id, 'name': p.name, 'description': p.description,
-        'created_at': p.created_at.isoformat(), 'updated_at': p.updated_at.isoformat(),
-    } for p in qs.order_by('-created_at')[offset:offset+limit]]
-    return JsonResponse({'results': data, 'total': total, 'offset': offset, 'limit': limit})
-
-@csrf_exempt
-@require_http_methods(["POST"])
-def create_project(request):
-    try:
-        payload = json.loads(request.body or "{}")
-        p = Project.objects.create(name=payload['name'], description=payload.get('description',''))
-        return JsonResponse({'id': p.id, 'name': p.name, 'description': p.description,
-                             'created_at': p.created_at.isoformat(), 'updated_at': p.updated_at.isoformat()}, status=201)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=400)
-
-@csrf_exempt
-@require_http_methods(["GET"])
-def tasks(request, project_id):
-    try:
-        q = request.GET.get('q') or ''
-        status = request.GET.get('status')
-        priority = request.GET.get('priority')
-        limit = int(request.GET.get('limit') or 20)
-        offset = int(request.GET.get('offset') or 0)
-        qs = Task.objects.filter(project_id=project_id)
-        if q:
-            qs = qs.filter(Q(title__icontains=q) | Q(description__icontains=q))
-        if status:
-            qs = qs.filter(status=status)
-        if priority:
-            qs = qs.filter(priority=priority)
-        total = qs.count()
-        data = [{
-            'id': t.id, 'title': t.title, 'description': t.description, 'status': t.status,
-            'priority': t.priority, 'due_date': t.due_date.isoformat() if t.due_date else None,
-            'assignee_id': t.assignee_id, 'project_id': t.project_id,
-            'tags': [tag.name for tag in t.tags.all()],
-            'created_at': t.created_at.isoformat(), 'updated_at': t.updated_at.isoformat(),
-        } for t in qs.order_by('-created_at')[offset:offset+limit]]
-        return JsonResponse({'results': data, 'total': total, 'offset': offset, 'limit': limit})
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=400)
-
-@csrf_exempt
-@require_http_methods(["POST"])
-def create_task(request, project_id):
-    try:
-        payload = json.loads(request.body or "{}")
-        t = Task.objects.create(
-            project_id=project_id,
-            title=payload['title'],
-            description=payload.get('description',''),
-            status=payload.get('status','todo'),
-            priority=payload.get('priority','medium'),
-            due_date=payload.get('due_date') or None,
-            assignee_id=payload.get('assignee_id') or None
-        )
-        names = payload.get('tags') or []
-        if names:
-            tags = [Tag.objects.get_or_create(name=n)[0] for n in names]
-            t.tags.set(tags)
-        return JsonResponse({'id': t.id}, status=201)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=400)
-
-@csrf_exempt
-@require_http_methods(["PUT"])
-def update_task(request, task_id):
-    try:
-        payload = json.loads(request.body or "{}")
-        t = Task.objects.get(pk=task_id)
-        for field in ['title','description','status','priority']:
-            if field in payload:
-                setattr(t, field, payload[field])
-        if 'due_date' in payload:
-            t.due_date = payload['due_date'] or None
-        if 'assignee_id' in payload:
-            t.assignee_id = payload['assignee_id'] or None
-        t.save()
-        if 'tags' in payload:
-            names = payload.get('tags') or []
-            tags = [Tag.objects.get_or_create(name=n)[0] for n in names]
-            t.tags.set(tags)
-        return JsonResponse({'ok': True})
-    except Task.DoesNotExist:
-        return JsonResponse({'error': 'Not found'}, status=404)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=400)
-
-@csrf_exempt
-@require_http_methods(["DELETE"])
-def delete_task(request, task_id):
-    try:
-        Task.objects.filter(pk=task_id).delete()
-        return JsonResponse({'ok': True})
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=400)
-
-@csrf_exempt
-@require_http_methods(["GET"])
-def comments(request, task_id):
-    try:
-        qs = Comment.objects.filter(task_id=task_id).order_by('created_at')
-        data = [{
-            'id': c.id, 'author_id': c.author_id, 'body': c.body, 'created_at': c.created_at.isoformat()
-        } for c in qs]
-        return JsonResponse(data, safe=False)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=400)
-
-@csrf_exempt
-@require_http_methods(["POST"])
-def create_comment(request, task_id):
-    try:
-        payload = json.loads(request.body or "{}")
-        author_id = payload.get('author_id') or (request.user.id if request.user.is_authenticated else None)
-        if not author_id:
-            return JsonResponse({'error': 'author required'}, status=400)
-        c = Comment.objects.create(task_id=task_id, author_id=author_id, body=payload['body'])
-        return JsonResponse({'id': c.id, 'created_at': c.created_at.isoformat()}, status=201)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=400)
-@csrf_exempt
-@require_http_methods(["PUT"])
-def update_item(request, item_id):
-    try:
-        data = json.loads(request.body)
-        item = Item.objects.get(pk=item_id)
-        item.name = data.get('name', item.name)
-        item.description = data.get('description', item.description)
-        item.save()
-        return JsonResponse({
-            'id': item.id,
-            'name': item.name,
-            'description': item.description,
-            'created_at': item.created_at.isoformat()
-        })
-    except Item.DoesNotExist:
-        return JsonResponse({'error': 'Not found'}, status=404)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=400)
-
-@csrf_exempt
-@require_http_methods(["DELETE"])
-def delete_item(request, item_id):
-    try:
-        item = Item.objects.get(pk=item_id)
-        item.delete()
-        return JsonResponse({'ok': True})
-    except Item.DoesNotExist:
-        return JsonResponse({'error': 'Not found'}, status=404)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=400)
+        'id': o.id,
+        'total_price': str(o.total_price),
+        'status': o.status,
+        'created_at': o.created_at.isoformat(),
+        'items': [{
+            'name': i.product.name,
+            'quantity': i.quantity,
+            'price': str(i.price)
+        } for i in o.items.all()]
+    } for o in orders]
+    return JsonResponse(data, safe=False)

@@ -1,12 +1,29 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.core.validators import MinValueValidator, MaxValueValidator
 
-class Item(models.Model):
+class Category(models.Model):
     name = models.CharField(max_length=100)
+    slug = models.SlugField(unique=True)
+    description = models.TextField(blank=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name_plural = "Categories"
+
+class Product(models.Model):
+    category = models.ForeignKey(Category, related_name='products', on_delete=models.CASCADE)
+    name = models.CharField(max_length=200)
+    slug = models.SlugField(unique=True)
     description = models.TextField()
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    stock = models.PositiveIntegerField(default=0)
+    image_url = models.URLField(max_length=500, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     def __str__(self):
         return self.name
 
@@ -15,62 +32,53 @@ class Item(models.Model):
         indexes = [
             models.Index(fields=['-created_at']),
             models.Index(fields=['name']),
+            models.Index(fields=['category']),
         ]
 
-class Project(models.Model):
-    name = models.CharField(max_length=120)
-    description = models.TextField(blank=True)
+class CartItem(models.Model):
+    user = models.ForeignKey(User, related_name='cart_items', on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField(default=1)
+    added_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username}'s cart: {self.product.name} x {self.quantity}"
+
+class Order(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('paid', 'Paid'),
+        ('shipped', 'Shipped'),
+        ('delivered', 'Delivered'),
+        ('cancelled', 'Cancelled'),
+    ]
+    user = models.ForeignKey(User, related_name='orders', on_delete=models.CASCADE)
+    total_price = models.DecimalField(max_digits=10, decimal_places=2)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return self.name
-
-class Membership(models.Model):
-    ROLE_CHOICES = [('owner','Owner'), ('member','Member'), ('viewer','Viewer')]
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='memberships')
-    role = models.CharField(max_length=12, choices=ROLE_CHOICES, default='member')
-    created_at = models.DateTimeField(auto_now_add=True)
+        return f"Order {self.id} by {self.user.username}"
 
     class Meta:
-        unique_together = ('user', 'project')
-
-class Tag(models.Model):
-    name = models.CharField(max_length=40, unique=True)
-
-    def __str__(self):
-        return self.name
-
-class Task(models.Model):
-    STATUS_CHOICES = [('todo','To Do'), ('in_progress','In Progress'), ('done','Done'), ('blocked','Blocked')]
-    PRIORITY_CHOICES = [('low','Low'), ('medium','Medium'), ('high','High'), ('urgent','Urgent')]
-    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='tasks')
-    title = models.CharField(max_length=160)
-    description = models.TextField(blank=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='todo', db_index=True)
-    priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='medium', db_index=True)
-    due_date = models.DateField(null=True, blank=True, db_index=True)
-    assignee = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='assigned_tasks')
-    tags = models.ManyToManyField(Tag, blank=True, related_name='tasks')
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        indexes = [
-            models.Index(fields=['status']),
-            models.Index(fields=['priority']),
-        ]
         ordering = ['-created_at']
 
-    def __str__(self):
-        return f'{self.title} [{self.status}]'
+class OrderItem(models.Model):
+    order = models.ForeignKey(Order, related_name='items', on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    quantity = models.PositiveIntegerField(default=1)
 
-class Comment(models.Model):
-    task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name='comments')
-    author = models.ForeignKey(User, on_delete=models.CASCADE)
-    body = models.TextField()
+    def __str__(self):
+        return f"Order {self.order.id} item: {self.product.name}"
+
+class Review(models.Model):
+    user = models.ForeignKey(User, related_name='reviews', on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, related_name='reviews', on_delete=models.CASCADE)
+    rating = models.PositiveIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
+    comment = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
 
-    class Meta:
-        ordering = ['created_at']
+    def __str__(self):
+        return f"{self.user.username}'s review for {self.product.name}"
