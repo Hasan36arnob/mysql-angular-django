@@ -4,26 +4,67 @@
   --secondary: #10b981; /* BD Green */
   --bg: #f1f5f9;
   --panel: #ffffff;
-  --text: #0f172a;
-  --muted: #64748b;
+  --text: #0F1111;
+  --muted: #565959;
   --accent: #fbbf24; /* Gold */
-  --border: #e2e8f0;
-  --shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --border: #DDD;
+  --shadow: 0 2px 5px 0 rgba(213,217,217,.5);
+  --amazon-blue: #131921;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { 
   font-family: 'Hind Siliguri', 'Inter', system-ui, sans-serif; 
-  background: var(--bg); 
+  background: white; 
   color: var(--text);
   line-height: 1.6;
 }
 
-/* Navigation - Premium Amazon Style */
+/* Auth Pages - Ultra Premium */
+.auth-bg {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #fff 0%, #f3f3f3 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 2rem;
+}
+.auth-logo {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #000;
+  margin-bottom: 1.5rem;
+  cursor: pointer;
+}
+.auth-logo span { color: var(--primary); }
+
+.auth-card {
+  width: 100%;
+  max-width: 350px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 1.5rem 2rem;
+  box-shadow: none;
+}
+.auth-card h1 { font-size: 1.75rem; font-weight: 400; margin-bottom: 1rem; }
+.auth-card .form-group { margin-bottom: 0.75rem; }
+.auth-card label { display: block; font-size: 0.85rem; font-weight: 700; margin-bottom: 2px; }
+.auth-card .form-control {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #a6a6a6;
+  border-radius: 3px;
+  box-shadow: 0 1px 0 rgba(255,255,255,.5), 0 1px 0 rgba(0,0,0,.07) inset;
+  outline: none;
+}
+.auth-card .form-control:focus { border-color: #e77600; box-shadow: 0 0 3px 2px rgba(228,121,17,.5); }
+
+/* Navigation */
 .nav {
-  background: #131921;
+  background: var(--amazon-blue);
   color: white;
-  padding: 0.75rem 2rem;
+  padding: 0.5rem 1.5rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -69,8 +110,37 @@ body {
 }
 .nav-link small { display: block; font-size: 0.7rem; opacity: 0.8; }
 
+/* Hero Banner */
+.hero {
+  background: linear-gradient(to bottom, rgba(0,0,0,0) 60%, white 100%), url('https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=1600&q=80');
+  background-size: cover;
+  background-position: center;
+  height: 400px;
+  margin-top: -1.5rem;
+  margin-bottom: -250px;
+}
+
+.promo-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+  position: relative;
+  z-index: 10;
+  margin-bottom: 2rem;
+}
+.promo-card {
+  background: white;
+  padding: 1.25rem;
+  border-radius: 0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+.promo-card h2 { font-size: 1.3rem; margin-bottom: 1rem; }
+.promo-card img { width: 100%; height: 250px; object-fit: cover; margin-bottom: 1rem; }
+.promo-card a { color: #007185; text-decoration: none; font-size: 0.85rem; }
+.promo-card a:hover { color: #C7511F; text-decoration: underline; }
+
 .container {
-  max-width: 1400px;
+  max-width: 1500px;
   margin: 1.5rem auto;
   padding: 0 1.5rem;
 }

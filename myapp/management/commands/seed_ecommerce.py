@@ -2,10 +2,10 @@ from django.core.management.base import BaseCommand
 from myapp.models import Category, Product, Review
 from django.contrib.auth.models import User
 from django.utils.text import slugify
-import random
+import random 
 
 class Command(BaseCommand):
-    help = "Seed database with a massive collection of premium Bangladeshi products"
+    help = "Seed database with a massive collection of premium Bangladeshi products across multiple categories"
 
     def handle(self, *args, **kwargs):
         # 1. Clear old data
@@ -14,14 +14,13 @@ class Command(BaseCommand):
         
         # 2. Define Categories
         cats_data = [
-            ("Premium Panjabi", "Exquisite menswear from top artisans"),
-            ("Traditional Kabli", "Classic and modern Kabli sets"),
-            ("Organic Food", "Pure and authentic local flavors"),
-            ("Handicrafts", "Hand-made masterpieces of Bengal"),
+            ("Electronics", "Latest tech, gadgets, and household electronics"),
+            ("Fresh Fruits", "Organic, seasonal, and farm-fresh fruits"),
+            ("Organic Vegetables", "Chemical-free, healthy vegetables from local farms"),
+            ("Books & Stationery", "Best-sellers, educational, and local literature"),
             ("Digital Assets", "High-end website templates and code"),
-            ("Tech Gadgets", "Modern electronics and accessories"),
             ("Home Decor", "Traditional aesthetics for your home"),
-            ("Luxury Perfumes", "Exotic local and imported fragrances"),
+            ("Tech Gadgets", "Modern accessories and portable tech"),
         ]
         
         categories = {}
@@ -34,36 +33,39 @@ class Command(BaseCommand):
             
         self.stdout.write(self.style.SUCCESS(f"Created {len(categories)} premium categories"))
 
-        # 3. Define a massive product list (40+ items)
+        # 3. Define a massive product list (50+ items)
         products_data = [
-            # --- Premium Panjabi ---
-            ("Royal White Silk Panjabi", 12500, "Premium Panjabi", "https://images.unsplash.com/photo-1597983073493-88cd35cf93b0?w=500&q=80"),
-            ("Midnight Black Designer Panjabi", 8500, "Premium Panjabi", "https://images.unsplash.com/photo-1621335829175-95f437384d7c?w=500&q=80"),
-            ("Embroidered Maroon Silk Panjabi", 15000, "Premium Panjabi", "https://images.unsplash.com/photo-1589310243389-96a5483213a8?w=500&q=80"),
-            ("Golden Tussar Silk Panjabi", 18500, "Premium Panjabi", "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=500&q=80"),
-            ("Hand-loomed Cotton Panjabi", 3500, "Premium Panjabi", "https://images.unsplash.com/photo-1594932224828-b4b057b7d6ee?w=500&q=80"),
-            ("Azure Blue Slim-fit Panjabi", 4200, "Premium Panjabi", "https://images.unsplash.com/photo-1617137968427-85924c800a22?w=500&q=80"),
+            # --- Electronics ---
+            ("Ultra Slim 4K Smart TV", 55000, "Electronics", "https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?w=500&q=80"),
+            ("Energy-Efficient Refrigerator", 42000, "Electronics", "https://images.unsplash.com/photo-1571175432248-77983678070b?w=500&q=80"),
+            ("Automatic Front-Load Washer", 38000, "Electronics", "https://images.unsplash.com/photo-1582735689369-4fe9c757fb44?w=500&q=80"),
+            ("Portable Induction Cooktop", 4500, "Electronics", "https://images.unsplash.com/photo-1584990344321-2793ac948a67?w=500&q=80"),
+            ("Smart Air Purifier BD Edition", 12000, "Electronics", "https://images.unsplash.com/photo-1585771724684-252ad5058631?w=500&q=80"),
+            ("Premium Blender & Mixer", 3200, "Electronics", "https://images.unsplash.com/photo-1570222083775-58742f56018b?w=500&q=80"),
 
-            # --- Traditional Kabli ---
-            ("Peshawari Design Kabli Set", 6500, "Traditional Kabli", "https://images.unsplash.com/photo-1598411037848-00530cc39615?w=500&q=80"),
-            ("Modern Navy Blue Kabli", 7200, "Traditional Kabli", "https://images.unsplash.com/photo-1590035221029-4421e19d5181?w=500&q=80"),
-            ("Charcoal Grey Kabli Suite", 8000, "Traditional Kabli", "https://images.unsplash.com/photo-1593030761757-71fae45fa0e7?w=500&q=80"),
-            ("Off-white Festive Kabli", 5800, "Traditional Kabli", "https://images.unsplash.com/photo-1590035221029-4421e19d5181?w=500&q=80"),
+            # --- Fresh Fruits ---
+            ("Premium Rajshahi Fazli Mango (5kg)", 1200, "Fresh Fruits", "https://images.unsplash.com/photo-1553279768-865429fa0078?w=500&q=80"),
+            ("Organic Green Guava (2kg)", 350, "Fresh Fruits", "https://images.unsplash.com/photo-1536511110591-775b16f407b2?w=500&q=80"),
+            ("Seasonal Lichi (100 pcs)", 800, "Fresh Fruits", "https://images.unsplash.com/photo-1601050690597-df0568f70950?w=500&q=80"),
+            ("Fresh Sweet Pomegranate (1kg)", 450, "Fresh Fruits", "https://images.unsplash.com/photo-1615485500704-8e990f9900f7?w=500&q=80"),
+            ("Organic Papaya (Large)", 150, "Fresh Fruits", "https://images.unsplash.com/photo-1526600329882-47c3f1405533?w=500&q=80"),
+            ("Fresh Cavendish Banana (Dozen)", 120, "Fresh Fruits", "https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?w=500&q=80"),
 
-            # --- Organic Food ---
-            ("Sundarban Lichi Honey (1kg)", 1500, "Organic Food", "https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=500&q=80"),
-            ("Pure Deshi Cow Ghee (500g)", 1100, "Organic Food", "https://images.unsplash.com/photo-1589927986089-35812388d1f4?w=500&q=80"),
-            ("Premium Kalijeera Rice (5kg)", 850, "Organic Food", "https://images.unsplash.com/photo-1586201327693-866199f1417f?w=500&q=80"),
-            ("Organic Turmeric Powder (250g)", 250, "Organic Food", "https://images.unsplash.com/photo-1615485242231-82abb2f1f0d0?w=500&q=80"),
-            ("Cold Pressed Mustard Oil (1L)", 450, "Organic Food", "https://images.unsplash.com/photo-1474979266404-7eaacfb88c51?w=500&q=80"),
-            ("Hand-picked Tea Leaves (Srimangal)", 600, "Organic Food", "https://images.unsplash.com/photo-1544787210-2213d64ad9ff?w=500&q=80"),
+            # --- Organic Vegetables ---
+            ("Fresh Red Spinach (Bundle)", 40, "Organic Vegetables", "https://images.unsplash.com/photo-1592419044706-39796d40f98c?w=500&q=80"),
+            ("Organic Green Chili (250g)", 80, "Organic Vegetables", "https://images.unsplash.com/photo-1588253518679-1293149f132a?w=500&q=80"),
+            ("Farm Fresh Tomato (1kg)", 120, "Organic Vegetables", "https://images.unsplash.com/photo-1518977676601-b53f02ac6d31?w=500&q=80"),
+            ("Native Potato (Deshi) 5kg", 250, "Organic Vegetables", "https://images.unsplash.com/photo-1518977676601-b53f02ac6d31?w=500&q=80"),
+            ("Fresh Cauliflower (Medium)", 60, "Organic Vegetables", "https://images.unsplash.com/photo-1568584711075-3d021a7c3fb3?w=500&q=80"),
+            ("Organic Bitter Gourd (500g)", 50, "Organic Vegetables", "https://images.unsplash.com/photo-1583324113626-70df0f43aa2b?w=500&q=80"),
 
-            # --- Handicrafts ---
-            ("Nakshi Kantha Hand-stitched", 12000, "Handicrafts", "https://images.unsplash.com/photo-1590013332441-9f673e4837cd?w=500&q=80"),
-            ("Jute Craft Table Runner", 1800, "Handicrafts", "https://images.unsplash.com/photo-1533090161767-e6ffed986c88?w=500&q=80"),
-            ("Traditional Pottery Set (12pc)", 4500, "Handicrafts", "https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?w=500&q=80"),
-            ("Bamboo Hand-woven Basket", 1200, "Handicrafts", "https://images.unsplash.com/photo-1591084728795-1149f32d9866?w=500&q=80"),
-            ("Brass Flower Vase (Artisan)", 3200, "Handicrafts", "https://images.unsplash.com/photo-1581781870027-04212e231e96?w=500&q=80"),
+            # --- Books & Stationery ---
+            ("Humayun Ahmed Collection Vol 1", 1200, "Books & Stationery", "https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=500&q=80"),
+            ("Bengali Literature History", 850, "Books & Stationery", "https://images.unsplash.com/photo-1495446815901-a7297e633e8d?w=500&q=80"),
+            ("Advanced Programming in Python", 1500, "Books & Stationery", "https://images.unsplash.com/photo-1515879218367-8466d910aaa4?w=500&q=80"),
+            ("Premium Leather Journal", 650, "Books & Stationery", "https://images.unsplash.com/photo-1544816155-12df9643f363?w=500&q=80"),
+            ("Art Supplies Pro Kit", 2500, "Books & Stationery", "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=500&q=80"),
+            ("Motivational Best Sellers Set", 1800, "Books & Stationery", "https://images.unsplash.com/photo-1512820790803-83ca734da794?w=500&q=80"),
 
             # --- Digital Assets ---
             ("Advanced E-Commerce Script", 55000, "Digital Assets", "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=500&q=80"),
@@ -85,12 +87,6 @@ class Command(BaseCommand):
             ("Embroidered Cushion Cover Set", 2500, "Home Decor", "https://images.unsplash.com/photo-1584132967334-10e028bd69f7?w=500&q=80"),
             ("Ceramic Table Lamp Modern", 4200, "Home Decor", "https://images.unsplash.com/photo-1534073828943-f801091bb18c?w=500&q=80"),
             ("Traditional Jute Wall Art", 3800, "Home Decor", "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=500&q=80"),
-
-            # --- Luxury Perfumes ---
-            ("Oudh Al-Bakhoor (Exotic)", 9500, "Luxury Perfumes", "https://images.unsplash.com/photo-1541643600914-78b084683601?w=500&q=80"),
-            ("Royal Rose Attar (12ml)", 3200, "Luxury Perfumes", "https://images.unsplash.com/photo-1594035910387-fea47794261f?w=500&q=80"),
-            ("Midnight Musk Perfume", 5500, "Luxury Perfumes", "https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?w=500&q=80"),
-            ("Sandalwood Concentrated Oil", 4800, "Luxury Perfumes", "https://images.unsplash.com/photo-1616948055600-a19116c29957?w=500&q=80"),
         ]
 
         products = []
@@ -100,7 +96,7 @@ class Command(BaseCommand):
                 name=name,
                 defaults={
                     'slug': slugify(name),
-                    'description': f"Premium {name} sourced directly from the finest artisans and creators of Bangladesh. Authenticity and quality are our top priorities.",
+                    'description': f"Premium {name} sourced directly from the finest producers and creators. Authenticity and quality are our top priorities.",
                     'price': price,
                     'stock': random.randint(5, 50),
                     'category': cat,
