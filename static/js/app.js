@@ -2,12 +2,13 @@ var app = angular.module('myApp', []);
 
 app.controller('MainController', ['$scope', '$http', function($scope, $http) {
     // --- State ---
-    $scope.view = 'store'; // store, product, cart, orders, login, register
+    $scope.view = 'store'; // store, product, cart, orders, login, register, wishlist
     $scope.me = null;
     $scope.products = [];
     $scope.categories = [];
     $scope.cart = [];
     $scope.orders = [];
+    $scope.wishlist = [];
     $scope.selectedProduct = null;
     $scope.filters = { q: '', category: '' };
     $scope.auth = { username: '', password: '', email: '' };
@@ -32,6 +33,21 @@ app.controller('MainController', ['$scope', '$http', function($scope, $http) {
         if (v === 'store') $scope.loadProducts();
         if (v === 'cart') $scope.loadCart();
         if (v === 'orders') $scope.loadOrders();
+    };
+
+    $scope.toggleSidebar = function() {
+        // Simple placeholder for mega-menu logic
+        $scope.message = 'All Departments Menu Clicked';
+    };
+
+    // --- Wishlist ---
+    $scope.toggleWishlist = function(product) {
+        product.isWishlisted = !product.isWishlisted;
+        if (product.isWishlisted) {
+            $scope.message = 'Added to Wishlist';
+        } else {
+            $scope.message = 'Removed from Wishlist';
+        }
     };
 
     // --- Auth ---
