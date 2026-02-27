@@ -1,5 +1,6 @@
 var app = angular.module('myApp', []);
-
+//ekke
+// efob fhiei
 app.controller('MainController', ['$scope', '$http', function($scope, $http) {
     // --- State ---
     $scope.view = 'store'; // store, product, cart, orders, login, register, wishlist
