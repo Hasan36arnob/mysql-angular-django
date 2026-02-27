@@ -50,6 +50,8 @@ app.controller('MainController', ['$scope', '$http', function($scope, $http) {
             $scope.message = 'Removed from Wishlist';
         }
     };
+// fekjfles 
+
 
     // --- Auth ---
     $scope.login = function() {
