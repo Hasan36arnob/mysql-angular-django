@@ -144,6 +144,24 @@ def cart_remove(request, item_id):
     item.delete()
     return JsonResponse({'ok': True})
 
+@csrf_exempt
+@require_http_methods(["PUT"])
+def cart_update(request, item_id):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Auth required'}, status=401)
+    
+    data = json.loads(request.body)
+    new_quantity = int(data.get('quantity', 1))
+    
+    if new_quantity <= 0:
+        return JsonResponse({'error': 'Quantity must be positive'}, status=400)
+        
+    item = get_object_or_404(CartItem, id=item_id, user=request.user)
+    item.quantity = new_quantity
+    item.save()
+    
+    return JsonResponse({'ok': True})
+
 # --- ORDERS ---
 @csrf_exempt
 @require_http_methods(["POST"])
